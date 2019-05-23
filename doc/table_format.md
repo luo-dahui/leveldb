@@ -1,4 +1,4 @@
-## leveldb文件格式
+## leveldb文件格式(*.ldb)
     <beginning_of_file>
     [data block 1]
     [data block 2]
