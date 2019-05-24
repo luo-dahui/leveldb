@@ -26,6 +26,13 @@ struct FileMetaData {
   InternalKey largest;   // Largest internal key served by table
 };
 
+/*
+1. compact过程中会有一系列改变，当前Version的操作（FileNumber增加，删除input的sstable，增加
+输出的sstable ……），为了缩小Version切换的时间点，将这些操作封装成VersionEdit，compact
+完成时，将VersionEdit中的操作一次应用到当前Version即可得到最新状态的Version。
+
+2. 每次compact之后都会将对应的VersionEdit encode写入manifest文件。
+*/
 class VersionEdit {
  public:
   VersionEdit() { Clear(); }
@@ -85,19 +92,29 @@ class VersionEdit {
 
   typedef std::set<std::pair<int, uint64_t> > DeletedFileSet;
 
+  // db一旦创建，排序的逻辑就必须保持兼容，用comparator的名字做凭证
   std::string comparator_;
+  // log文件的FileNumber
   uint64_t log_number_;
+  // 辅助log的FileNumber
   uint64_t prev_log_number_;
+  // 下一个可用的FileNumber
   uint64_t next_file_number_;
+  // 用过的最后一个SequnceNumber
   SequenceNumber last_sequence_;
+  // 标识是否存在，验证使用
   bool has_comparator_;
   bool has_log_number_;
   bool has_prev_log_number_;
   bool has_next_file_number_;
   bool has_last_sequence_;
 
+  /* 要更新的pair: (level ==> compact_pointer), 
+     比如：compact_pointers_.push_back(std::make_pair(level, key));*/
   std::vector<std::pair<int, InternalKey> > compact_pointers_;
+  // 要删除的sstable文件（compact的input文件）  
   DeletedFileSet deleted_files_;
+  // 新的文件（compact的output文件）
   std::vector<std::pair<int, FileMetaData> > new_files_;
 };
 

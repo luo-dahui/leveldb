@@ -17,6 +17,11 @@ Arena::~Arena() {
   }
 }
 
+/*
+Arena 每次按 kBlockSize(4096) 单位向系统申请内存，提供地址对齐的内存，记录内存使用。
+当 memtable 申请内存时，如果 size 不大于 kBlockSize 的四分之一，就在当前空闲的内存 block 中
+分配，否则，直接向系统申请（ malloc ）。这个策略是为了能更好的服务小内存的申请，避免个别大
+内存使用影响。*/
 char* Arena::AllocateFallback(size_t bytes) {
   if (bytes > kBlockSize / 4) {
     // Object is more than a quarter of our block size.  Allocate it separately

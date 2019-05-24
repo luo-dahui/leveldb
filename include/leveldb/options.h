@@ -102,6 +102,12 @@ struct LEVELDB_EXPORT Options {
   // Number of keys between restart points for delta encoding of keys.
   // This parameter can be changed dynamically.  Most clients should
   // leave this parameter alone.
+  /*
+  1.sstable中的数据以block单位存储，有利于IO和解析的粒度
+  2.对 block内的前缀压缩分区段进行
+  3.block_restart_interval个key做前缀压缩后，就重新开始下一轮。(BlockBuilder::Add)
+  4.每轮压缩的block offset保持在restarts_中, restarts_记录着总共的压缩轮数(BlockBuilder::Add)
+  */
   int block_restart_interval = 16;
 
   // Leveldb will write up to this amount of bytes to a file before

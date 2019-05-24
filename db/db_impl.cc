@@ -688,6 +688,7 @@ void DBImpl::BackgroundCall() {
 void DBImpl::BackgroundCompaction() {
   mutex_.AssertHeld();
 
+  // 将im memtable的数据写到level0文件中
   if (imm_ != nullptr) {
     CompactMemTable();
     return;

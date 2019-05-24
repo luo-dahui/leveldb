@@ -44,6 +44,14 @@ static double MaxBytesForLevel(const Options* options, int level) {
   // the level-0 compaction threshold based on number of files.
 
   // Result for both level-0 and level-1
+  /*
+  1. 0级文件没有使用这个函数，0级文件总大小不受限制，受文件个数的限制。
+  2. level层级文件的总大小：
+      level 1: 10M
+      level 2: 100M
+      level 3: 1000M
+      ....
+  */
   double result = 10. * 1048576.0;
   while (level > 1) {
     result *= 10;
@@ -587,9 +595,22 @@ std::string Version::DebugString() const {
 // A helper class so we can efficiently apply a whole sequence
 // of edits to a particular state without creating intermediate
 // Versions that contain full copies of the intermediate state.
+
+/*
+1.将VersionEdit应用到VersonSet上的过程封装成VersionSet::Builder.
+主要是更新Version::files_[].
+
+2.以base_->files_[level] 为基准，根据levels_中LevelStat的deleted_files/added_files 做 merge，
+输出到新Version的files_[level] (VersionSet::Builder::SaveTo()). 
+1） 对于每个 level n ， base_->files_[n] 与 added_files 做 merge，输出到新 Version 的 files_[n]
+中。过程中 根据 deleted_files 将要删除的丢弃掉（ VersionSet::Builder::MaybeAddFile（））。
+
+2） 处理完成，新 Version 中的 files_[level] 有了最新的 sstable 集合（ FileMetaData ）。
+*/
 class VersionSet::Builder {
  private:
   // Helper to sort by v->files_[file_number].smallest
+  // 处理Version::files_[i]中FileMetaData的排序
   struct BySmallestKey {
     const InternalKeyComparator* internal_comparator;
 
@@ -603,15 +624,23 @@ class VersionSet::Builder {
       }
     }
   };
-
+  // 排序的sstable（FileMetaData）集合
   typedef std::set<FileMetaData*, BySmallestKey> FileSet;
+  // 要添加和删除的sstable文件集合结构体
   struct LevelState {
     std::set<uint64_t> deleted_files;
     FileSet* added_files;
   };
-
+  // 要更新的VersionSet
   VersionSet* vset_;
+  // 基准的Version，compact后，将current_传入作为base。
   Version* base_;
+   /*各个 level 上要更新的文件集合（ LevelStat ）
+   compact时，并不是每个level都有更新（level-n/level-n+1），有些level可能不需要compact。
+   compact条件：
+   1.level0的sst文件超过4个。
+   2.leveln(n>0)的当前level的sst文件总大小超过限定。
+   */
   LevelState levels_[config::kNumLevels];
 
  public:

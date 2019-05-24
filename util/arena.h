@@ -12,7 +12,15 @@
 #include <vector>
 
 namespace leveldb {
+/*
+1.memtable有阈值的限制（ write_buffer_size ）, 为了便于统计内存的使用，也为了内存使用效率，
+对 memtable 的内存使用实现了比较简单的 arena 管理（Arena）。
 
+2.Arena 每次按 kBlockSize(4096) 单位向系统申请内存，提供地址对齐的内存，记录内存使用。
+当 memtable 申请内存时，如果 size 不大于 kBlockSize 的四分之一，就在当前空闲的内存 block 中
+分配，否则，直接向系统申请（ malloc ）。这个策略是为了能更好的服务小内存的申请，避免个别大
+内存使用影响。（Arena::AllocateFallback）
+*/
 class Arena {
  public:
   Arena();
@@ -39,16 +47,20 @@ class Arena {
   char* AllocateNewBlock(size_t block_bytes);
 
   // Allocation state
+  // 当前空闲内存block内的可用地址
   char* alloc_ptr_;
+  // 当前空闲内存block内的可用大小
   size_t alloc_bytes_remaining_;
 
   // Array of new[] allocated memory blocks
+  // 已经申请的内存block
   std::vector<char*> blocks_;
 
   // Total memory usage of the arena.
   //
   // TODO(costan): This member is accessed via atomics, but the others are
   //               accessed without any locking. Is this OK?
+  // memtable已经使用的字节数
   std::atomic<size_t> memory_usage_;
 };
 
