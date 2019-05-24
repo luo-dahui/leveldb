@@ -64,6 +64,9 @@ typedef uint64_t SequenceNumber;
 // can be packed together into 64-bits.
 static const SequenceNumber kMaxSequenceNumber = ((0x1ull << 56) - 1);
 
+/*
+leveldb内部操作的key,db内部需要将user key(真实的key)加入元信息 (ValueType/SequenceNumber) 一并做处理。
+*/
 struct ParsedInternalKey {
   Slice user_key;
   SequenceNumber sequence;
@@ -129,6 +132,10 @@ class InternalFilterPolicy : public FilterPolicy {
 // Modules in this directory should keep internal keys wrapped inside
 // the following class instead of plain strings so that we do not
 // incorrectly use string comparisons instead of an InternalKeyComparator.
+/*
+db内部，包装易用的结构，
+包含 userkey 与 SequnceNumber/ValueType 。
+*/
 class InternalKey {
  private:
   std::string rep_;
@@ -178,6 +185,12 @@ inline bool ParseInternalKey(const Slice& internal_key,
   return (c <= static_cast<unsigned char>(kTypeValue));
 }
 
+/*
+1.db 内部在为查找 memtable/sstable 方便，包装使用的 key 结构，保存有 userkey 与
+SequnceNumber/ValueType dump 在内存的数据。
+
+2.对memtable进行lookup时使用[start,end],对sstable lookup时使用 [kstart, end] 。
+*/
 // A helper class useful for DBImpl::Get()
 class LookupKey {
  public:
