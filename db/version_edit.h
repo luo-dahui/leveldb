@@ -114,7 +114,7 @@ class VersionEdit {
   std::vector<std::pair<int, InternalKey> > compact_pointers_;
   // 要删除的sstable文件（compact的input文件）  
   DeletedFileSet deleted_files_;
-  // 新的文件（compact的output文件）
+  // 新的文件（compact的output文件），pair的key为level级别
   std::vector<std::pair<int, FileMetaData> > new_files_;
 };
 

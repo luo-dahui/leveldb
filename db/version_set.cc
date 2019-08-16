@@ -22,12 +22,16 @@
 
 namespace leveldb {
 
+// 目标文件的总大小（level 1）
 static size_t TargetFileSize(const Options* options) {
   return options->max_file_size;
 }
 
 // Maximum bytes of overlaps in grandparent (i.e., level+2) before we
 // stop building a single file in a level->level+1 compaction.
+/*
+在停止在级别->级别+1压缩中构建单个文件之前，祖父母级(级别+2)中重叠的最大字节数。
+*/
 static int64_t MaxGrandParentOverlapBytes(const Options* options) {
   return 10 * TargetFileSize(options);
 }
